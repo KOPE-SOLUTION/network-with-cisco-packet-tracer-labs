@@ -1,228 +1,238 @@
-# Packet Tracer 8.2.2 - Lab 2 : Interfaces configuration
+# Packet Tracer 8.2.2 - Lab 3 : VLAN and VTP
 
 ## Nwtwork diagram
 
-This lab will test your ability to configure **speed**, **duplex**, and **vlan settings** on the network interfaces of a Catalyst 2960 switch using Cisco Packet Tracer 8.1.1 .
+The aim of this lab is to test your ability to configure VLAN and VTP on a small network of 4 switches using Packet Tracer 8.2.
 
-![Nwtwork diagram](images/network-diagram.png)
+This lab will help you to prepare the VTP testlet and simlet questions of the Cisco CCNA exam.
+
+![network-diagram](images/network-diagram.png)
 
 <br>
 
 ## Lab instructions
 
-1. Connect to Switch0 using console interface and configure each Switch0 fastethernet switchport for operation. Correct settings are :
+1. Configure the VTP-SERVER switch as a VTP server
 
-    - Port type : access port
-    - Speed : 100 Mbit/s
-    - Duplex mode : Full Duplex
-    - Autonegotiation disabled
+2. Connect to the 3 other switches and configure them as VTP clients. All links between swiches must be configured as trunk lines.
 
-<br>
- 
-2. PC "192.168.1.4" seems to be unable to ping other PCs in the network. Check switch configuration.
+3. Configure VTP domain name as "TESTDOMAIN" and VTP password as "cisco"
 
-  TIP : How many broadcast domains are there in this network ?
+4. Configure VLAN 10 with name "STUDENTS" and VLAN 50 with name "SERVERS"
+
+5. Check propagation on all switches of the VTP domain.
 
 <br>
-
-3. Choose the right cable to connect :
-
-    - Switch0 gigabitethernet 1/1 to Switch1 gigabitethernet 1/1
-    - Switch1 gigabitethernet 1/2 to Switch2 gigabitethernet 1/2
-
-<br>
-
-4. Configure those two links as trunk lines without using trunk negotiation between switches
-
-<br>
-
-Copyright : http://www.packettracernetwork.com
-
-<br>
-
----
 
 ## Solution
 
-### STEP 1 — Configure Switch0 Access Ports
+### STEP 1 — Configure VTP-SERVER
 
-Goal: Set each FastEthernet port on Switch0 to:
-
-- Mode: access
-- Speed: 100
-- Duplex: full
-- Disable auto-negotiation (by setting speed manually)
-
-<br>
-
-**Commands on Switch0** :
+Go to VTP-SERVER CLI, then enter:
 
 ```sh
-Switch> enable
-Switch# configure terminal
-
-! Port for PC-PT (192.168.1.1)
-interface FastEthernet0/1
- switchport mode access
- duplex full
- speed 100
- exit
-
-! Port for PC-PT (192.168.1.2)
-interface FastEthernet0/2
- switchport mode access
- duplex full
- speed 100
- exit
-
-! Port for PC-PT (192.168.1.3)
-interface FastEthernet0/3
- switchport mode access
- duplex full
- speed 100
- exit
-
-! Port for Laptop-PT (192.168.1.4)
-interface FastEthernet0/4
- switchport mode access
- duplex full
- speed 100
- switchport access vlan 1
- exit
-```
-
-Check your config:
-
-```sh
-show interfaces status
-```
-
-You should see all ports set to 100Mb/s and Full Duplex.
-
-<br>
-
-### STEP 2 — Fix Connectivity for 192.168.1.4 (Laptop)
-
-If the laptop cannot ping others:
-
-1. Ensure it’s connected to **VLAN 1** on Switch0
-2. Check that the interface is **up** and not administratively down.
-
-Check with:
-
-```sh
-show vlan brief
-```
-
-If FastEthernet0/4 is not under VLAN 1, fix it:
-
-```sh
-interface FastEthernet0/4
- switchport mode access
- switchport access vlan 1
- no shutdown
-```
-
-Then test again:
-From Laptop (192.168.1.4) → ping 192.168.1.1
-
-<br>
-
-### STEP 3 — Correct Cabling Between Switches
-
-| Connection                    | Cable Type          | Why                              |
-| ----------------------------- | ------------------- | -------------------------------- |
-| Switch0 Gi0/1 → Switch1 Gi1/1 | **Crossover cable** | Same device type (Switch↔Switch) |
-| Switch1 Gi0/2 → Switch2 Gi1/2 | **Crossover cable** | Same device type (Switch↔Switch) |
-
-
-> Tip: In newer Cisco hardware, Auto-MDIX can auto-detect cable type, but this lab disables auto-negotiation, so use crossover manually.
-
-<br>
-
-### STEP 4 — Configure Trunk Links (No Negotiation)
-
-You will manually set the trunk ports (disable DTP negotiation).
-
-On Switch0:
-
-```sh
-interface GigabitEthernet0/1
- switchport mode trunk
- no shutdown
- exit
+enable
+configure terminal
+vtp mode server
+vtp domain TESTDOMAIN
+vtp password cisco
 ```
 
 <br>
 
-On Switch1:
+Verify:
 
 ```sh
-interface GigabitEthernet0/1
- switchport mode trunk
- no shutdown
- exit
-interface GigabitEthernet0/2
- switchport mode trunk
- no shutdown
- exit
+show vtp status
 ```
 
 <br>
 
-On Switch2:
+You should see:
 
 ```sh
-interface GigabitEthernet1/2
- switchport mode trunk
- no shutdown
- exit
+VTP Operating Mode: Server
+VTP Domain Name: TESTDOMAIN
+VTP Password: cisco
 ```
 
 <br>
 
-### STEP 5 — Verify Trunk Links
+#### STEP 2 — Configure VTP-CLIENT1, VTP-CLIENT2, VTP-CLIENT3
 
-Check if your trunk links are operational:
+On each client switch:
+
+```sh
+enable
+configure terminal
+vtp mode client
+vtp domain TESTDOMAIN
+vtp password cisco
+```
+
+<br>
+
+Verify:
+
+```sh
+show vtp status
+```
+
+<br>
+
+Expected:
+
+```sh
+VTP Operating Mode: Client
+VTP Domain Name: TESTDOMAIN
+VTP Password: cisco
+```
+
+> Tip: Domain and password must match exactly (case-sensitive).
+
+<br>
+
+#### STEP 3 — Configure Trunk Links between all switches
+
+Each connection between switches must be a **trunk port**.
+
+Example — on **every switch**, configure both Gigabit ports:
+
+```sh
+configure terminal
+interface range GigabitEthernet0/1 - 2
+switchport mode trunk
+no shutdown
+exit
+```
+
+> Don’t use `switchport mode dynamic desirable` — the lab specifies **no negotiation**, so only `switchport mode trunk`.
+
+<br>
+
+Verify:
 
 ```sh
 show interfaces trunk
 ```
 
-Expected Output:
-
-```sh
-Port        Mode         Encapsulation  Status        Native vlan
-Gi0/1       on           802.1q         trunking      1
-Gi0/2       on           802.1q         trunking      1
-```
-
-Both `Administrative Mode` and `Operational Mode` should be `trunk`.
+You should see all Gi0/1 and Gi0/2 in `trunking` state.
 
 <br>
 
-**Optional: Useful Show Commands**
+#### STEP 4 — Create VLANs on the VTP-SERVER
 
-| Command                      | Purpose                         |
-| ---------------------------- | ------------------------------- |
-| `show running-config`        | Review all port settings        |
-| `show vlan brief`            | Verify VLANs and access ports   |
-| `show interfaces switchport` | View port modes and negotiation |
-| `show interfaces trunk`      | Verify trunking details         |
+Now, create VLAN 10 and VLAN 50 only on the server switch.
+
+```sh
+configure terminal
+vlan 10
+ name STUDENTS
+exit
+vlan 50
+ name SERVERS
+exit
+```
 
 <br>
 
-### STEP 6 — Test Connectivity
-
-From any PC/Laptop, test connectivity:
+Verify locally:
 
 ```sh
-ping 192.168.1.1
-ping 192.168.1.2
-ping 192.168.1.3
-ping 192.168.1.4
+show vlan brief
 ```
 
-If all pings succeed → You completed the lab perfectly.
+<br>
+
+Expected output:
+
+```sh
+VLAN Name      Status   Ports
+1    default   active   Fa0/1 ...
+10   STUDENTS  active
+50   SERVERS   active
+```
+
+<br>
+
+#### STEP 5 — Verify VTP Propagation
+
+Now go to each client switch and type:
+
+```sh
+show vlan brief
+```
+
+<br>
+
+Expected result (without manually creating VLANs):
+
+```sh
+VLAN Name      Status
+1    default   active
+10   STUDENTS  active
+50   SERVERS   active
+```
+
+If VLANs 10 and 50 appear on all 3 clients → your **VTP is working correctly**.
+
+<br>
+
+#### STEP 6 — Optional Verification Commands
+
+| Command                      | Description                            |
+| ---------------------------- | -------------------------------------- |
+| `show vtp status`            | Check mode, domain, revision number    |
+| `show vlan brief`            | List all VLANs learned via VTP         |
+| `show interfaces trunk`      | Verify trunk ports                     |
+| `show interfaces switchport` | Confirm trunk/access mode of each port |
+
+<br>
+
+## Common Troubleshooting Tips
+
+| Problem                   | Likely Cause                   | Fix                                       |
+| ------------------------- | ------------------------------ | ----------------------------------------- |
+| VLANs not propagating     | Trunks not configured properly | Run `show interfaces trunk` and fix ports |
+| Client not learning VLANs | Wrong domain or password       | Re-enter `vtp domain` and `vtp password`  |
+| Revision number mismatch  | Old config in client           | Use `delete flash:vlan.dat` then reload   |
+
+<br>
+
+## Summary of All Commands
+
+On VTP-SERVER
+
+```sh
+enable
+conf t
+vtp mode server
+vtp domain TESTDOMAIN
+vtp password cisco
+interface range gi1/1 - 2
+ switchport mode trunk
+vlan 10
+ name STUDENTS
+vlan 50
+ name SERVERS
+end
+write memory
+```
+
+<br>
+
+On VTP-CLIENT1, CLIENT2, CLIENT3
+
+```sh
+enable
+conf t
+vtp mode client
+vtp domain TESTDOMAIN
+vtp password cisco
+interface range gi1/1 - 2
+ switchport mode trunk
+end
+write memory
+```
 
 ---
