@@ -1,14 +1,7 @@
-# Packet Tracer 8.2.2 - Lab 4 Port security
+# Packet Tracer 8.2.2 - Lab 6 Basic router setup
 
 ## Introduction
-
-A growing challenge for network administrators is to be able to control who is allowed - and who isn't - to access the organization's internal network. This access control is mandatory for critical infrastructure protection in your network. It is not on public parts of the network where guest users should be able to connect.
-
-Port security is a feature implemented in Cisco Catalyst switches which helps network engineers in implementing network security on network boundaries.
-
-In its most basic form, the Port Security feature remembers the MAC address of the device connected to the switch edge port and allows only that MAC address to be active on that port. If any other MAC address is detected on that port, port security feature shutdown the switch port.
-
-The switch can be configured to send a SNMP trap to a network monitoring solution to alert that a port is disabled for security reasons.
+At the first boot of a Cisco ISR router, some basic configuration has to be performed to secure adminitrative access to the router. This lab will test your ability to configure the basic security settngs of a Cisco ISR router and help you to get ready for the router configuration simulation activities in the CCENT / ICND1 certification exam (Chapter 5.0 Infrastructure Maintenance of [Cisco Certified Entry Networking Technician (CCENT)](https://www.packettracernetwork.com/ccna-ccnp-preparation/ccentcertification.html) exam)
 
 <br>
 
@@ -19,248 +12,160 @@ The switch can be configured to send a SNMP trap to a network monitoring solutio
 <br>
 
 ## Lab instructions
-This lab will test your ability to configure port security on CiscoTM 2960 switch interfaces.
+The aim of this lab is to test your ability to perform a basic router setup. You have 15 minutes to complete this simulation.
 
-1. Configure port security on interface Fa 0/1 of the switch with the following settings :
+1. Configure the LAPTOP terminal software with the right console parameters.
 
-    - Port security enabled
-    - Mode : restrict
-    - Allowed mac addresses : 3
-    - Dynamic mac address learning.
+2. Configure the router hostname to "GATEWAY"
 
-2. Configure port security on interface Fa 0/2 of the switch with the following settings :
+3. Configure the enable password and secret to "cisco"
 
-    - Port security enabled
-    - Mode : shutdown
-    - Allowed mac addresses : 3
-    - Dynamic mac address learning.
+4. Configure password encryption on the router to secure stored passwords
 
-3. Configure port security on interface Fa 0/3 of the switch with the following settings :
-
-    - Port security enabled
-    - Mode : protect
-    - Static mac address entry : 00E0.A3CE.3236
-
-4. From LAPTOP 1 :
-
-    Try to ping 192.168.1.2 and 192.168.1.3. It should work.
-    Try to ping 192.168.1.4 and 192.168.1.5. It should work.
-
-5. Connect ROGUE laptop to the hub.
-
-    Try to ping 192.168.1.1. It should work.
-    Try to ping 192.168.1.4. It should fail.
+5. Configure the console access :
+    - Login : yes
+    - Password : "cisco"
+    - History : 10 commands
+    - Logging synchronous
+    - Timeout : 2 minutes 45 seconds.
 
 <br>
 
 ## Solution
 
-### Lab Objective
+### Step 1 — Configure the Laptop Terminal
 
-You will configure **port security** on three switch ports (FastEthernet0/1, 0/2, 0/3), each with a different violation mode.
+1. Click **Laptop** → **Desktop** → **Terminal**.
+2. You’ll see the **Terminal Configuration** window (like in your image).
+3. Set the parameters as follows:
 
-**Devices in the topology**
-- **Switch0 (Cisco 2960)**
-- **Hub0** (connected to multiple laptops and PC)
-- **IP Phone0**
-- **Several laptops (Laptop1, ROGUE, etc.)**
+| Setting             | Value |
+| ------------------- | ----- |
+| **Bits per second** | 9600  |
+| **Data bits**       | 8     |
+| **Parity**          | None  |
+| **Stop bits**       | 1     |
+| **Flow control**    | None  |
 
-### STEP 1 — Interface Fa0/1 (Mode: Restrict)
 
-Commands on Switch0:
+Then click OK — this opens a console session with the router.
+
+<br>
+
+### Step 2 — Configure the Router Hostname
+
+Enter privileged mode and change the hostname:
 
 ```sh
-enable
-configure terminal
-interface FastEthernet0/1
- switchport mode access
- switchport port-security
- switchport port-security maximum 3
- switchport port-security mac-address sticky
- switchport port-security violation restrict
+Router> enable
+Router# configure terminal
+Router(config)# hostname GATEWAY
 ```
 
 <br>
 
-Explanation:
+The prompt should now display:
 
-| Setting                    | Description                                                      |
-| -------------------------- | ---------------------------------------------------------------- |
-| `switchport port-security` | Enables port security                                            |
-| `maximum 3`                | Allows only 3 MAC addresses to be learned dynamically            |
-| `mac-address sticky`       | Learns and stores MACs automatically                             |
-| `violation restrict`       | Drops packets from unknown MACs and increments violation counter |
-
-
-This interface is connected to **Hub0**, which will learn multiple MACs dynamically. When a **rogue device** connects and adds more than 3 MACs, this port will **restrict** it (drop packets but stay active).
+```sh
+GATEWAY(config)#
+```
 
 <br>
 
-### STEP 2 — Interface Fa0/2 (Mode: Shutdown)
+### Step 3 — Configure Enable Passwords
 
-Commands on Switch0:
+You will configure both the simple password and the encrypted secret:
 
 ```sh
-interface FastEthernet0/2
- switchport mode access
- switchport port-security
- switchport port-security maximum 3
- switchport port-security mac-address sticky
- switchport port-security violation shutdown
+GATEWAY(config)# enable password cisco
+GATEWAY(config)# enable secret cisco
 ```
 
-> “shutdown” is actually the default violation mode. When violated → port goes err-disabled and must be manually recovered.
-
-If this port exceeds 3 MACs, it will shut down (amber light).
+> The `enable secret` command automatically encrypts the password using MD5 and takes precedence over the plain `enable password`.
 
 <br>
 
-### STEP 3 — Interface Fa0/3 (Mode: Protect, Static MAC)
+### Step 4 — Enable Password Encryption
 
-Commands on Switch0
+This prevents plain-text passwords from being shown in the configuration file:
 
 ```sh
-interface FastEthernet0/3
- switchport mode access
- switchport port-security
- switchport port-security mac-address 00E0.A3CE.3236
- switchport port-security violation protect
+GATEWAY(config)# service password-encryption
 ```
+
+<br>
+
+### Step 5 — Configure Console Access
+
+Set up secure console access with login, password, timeout, and history:
+
+```sh
+GATEWAY(config)# line console 0
+GATEWAY(config-line)# password cisco
+GATEWAY(config-line)# login
+GATEWAY(config-line)# logging synchronous
+GATEWAY(config-line)# exec-timeout 2 45
+GATEWAY(config-line)# history size 10
+GATEWAY(config-line)# exit
+```
+
+<br>
 
 **Explanation**:
-- Only one device (MAC: 00E0.A3CE.3236) can communicate on this port.
-- If another laptop plugs in → traffic silently dropped (no counter, no shutdown).
+
+| Command               | Purpose                                                  |
+| --------------------- | -------------------------------------------------------- |
+| `password cisco`      | Sets console password                                    |
+| `login`               | Enables password checking                                |
+| `logging synchronous` | Prevents log messages from interrupting your typing      |
+| `exec-timeout 2 45`   | Auto-logout after 2 minutes and 45 seconds of inactivity |
+| `history size 10`     | Keeps the last 10 executed commands in history           |
 
 <br>
 
-### STEP 4 — Verification Commands
+### Step 6 — Verify and Save Configuration
 
-After configuration, check with:
+Check your configuration:
 
 ```sh
-show port-security
+show running-config
 ```
 
 <br>
 
-Example output:
+Then save it to NVRAM:
 
 ```sh
-Secure Port  MaxSecureAddr  CurrentAddr  SecurityViolation  Security Action
----------------------------------------------------------------------------
-Fa0/1        3              3            5                  Restrict
-Fa0/2        3              1            0                  Shutdown
-Fa0/3        1              1            0                  Protect
+copy running-config startup-config
 ```
 
 <br>
 
-Or detailed info per interface:
+## Final Configuration Summary
 
-```sh
-show port-security interface fa0/1
-```
+| Step | Command                                              | Description                                   |
+| ---- | ---------------------------------------------------- | --------------------------------------------- |
+| 1    | Configure terminal to **9600 / 8 / None / 1 / None** | Enable console access                         |
+| 2    | `hostname GATEWAY`                                   | Set router name                               |
+| 3    | `enable secret cisco`                                | Set encrypted privileged password             |
+| 4    | `service password-encryption`                        | Encrypt all passwords                         |
+| 5    | `line console 0` …                                   | Configure console login, timeout, and logging |
+| 6    | `copy run start`                                     | Save configuration permanently                |
 
-<br>
-
-### STEP 5 — Test Scenario
-
-**From Laptop1**: Ping other PCs (192.168.1.2, 192.168.1.3, etc.) → should work fine.
-
-<br>
-
-**Connect the “Rogue Laptop” to the Hub:**
-
-1. Once connected, the hub and switch port (Fa0/1) will have >3 MAC addresses.
-2. Port Fa0/1 is in **restrict** mode → it will drop traffic from the new (rogue) MAC.
-
-Result:
-- Rogue can ping 192.168.1.1 (since still under same port, initial ping OK)
-- But cannot ping 192.168.1.4 (because of port-security restriction)
-
-Check violations:
-
-```sh
-show port-security interface fa0/1
-```
-
-You should see:
-
-```sh
-Security Violation Count: >0
-Security Action: Restrict
-```
 
 <br>
 
-### STEP 6 — Recover from Shutdown (if triggered)
+## Quick Test
 
-If port Fa0/2 goes into `err-disabled`:
+1. Close the terminal window, reconnect via console.
+2. The router will now prompt for a **password** → type `cisco`.
+3. Enter **enable mode** with `enable` → again use `cisco`.
+4. Check the prompt — it should show:
 
-```shk
-interface FastEthernet0/2
- shutdown
- no shutdown
-```
+    ```sh
+    GATEWAY#
+    ```
 
-<br>
-
-Then check:
-
-```sh
-show interface status
-```
-
-It should show **connected (green)** again.
-
-<br>
-
-## Summary of All Commands
-
-### FastEthernet0/1 — Restrict
-
-```sh
-interface fa0/1
- switchport mode access
- switchport port-security
- switchport port-security maximum 3
- switchport port-security mac-address sticky
- switchport port-security violation restrict
-```
-
-<br>
-
-### FastEthernet0/2 — Shutdown
-
-```sh
-interface fa0/2
- switchport mode access
- switchport port-security
- switchport port-security maximum 3
- switchport port-security mac-address sticky
- switchport port-security violation shutdown
-```
-
-<br>
-
-### FastEthernet0/3 — Protect (Static)
-
-```sh
-interface fa0/3
- switchport mode access
- switchport port-security
- switchport port-security mac-address 00E0.A3CE.3236
- switchport port-security violation protect
-```
-
-<br>
-
-## Optional Verification Table
-
-| Port  | Max MACs | Mode   | Violation Action | Behavior                          |
-| ----- | -------- | ------ | ---------------- | --------------------------------- |
-| Fa0/1 | 3        | Sticky | Restrict         | Drops extra MAC, counts violation |
-| Fa0/2 | 3        | Sticky | Shutdown         | Port disables on violation        |
-| Fa0/3 | 1        | Static | Protect          | Drops silently, no counter        |
+That means your lab is complete!
 
 ---
