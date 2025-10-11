@@ -1,238 +1,266 @@
-# Packet Tracer 8.2.2 - Lab 3 : VLAN and VTP
+# Packet Tracer 8.2.2 - Lab 4 Port security
 
-## Nwtwork diagram
+## Introduction
 
-The aim of this lab is to test your ability to configure VLAN and VTP on a small network of 4 switches using Packet Tracer 8.2.
+A growing challenge for network administrators is to be able to control who is allowed - and who isn't - to access the organization's internal network. This access control is mandatory for critical infrastructure protection in your network. It is not on public parts of the network where guest users should be able to connect.
 
-This lab will help you to prepare the VTP testlet and simlet questions of the Cisco CCNA exam.
+Port security is a feature implemented in Cisco Catalyst switches which helps network engineers in implementing network security on network boundaries.
 
-![network-diagram](images/network-diagram.png)
+In its most basic form, the Port Security feature remembers the MAC address of the device connected to the switch edge port and allows only that MAC address to be active on that port. If any other MAC address is detected on that port, port security feature shutdown the switch port.
+
+The switch can be configured to send a SNMP trap to a network monitoring solution to alert that a port is disabled for security reasons.
+
+<br>
+
+## Network diagram
+
+![network diagram](images/network-diagram.png)
 
 <br>
 
 ## Lab instructions
+This lab will test your ability to configure port security on CiscoTM 2960 switch interfaces.
 
-1. Configure the VTP-SERVER switch as a VTP server
+1. Configure port security on interface Fa 0/1 of the switch with the following settings :
 
-2. Connect to the 3 other switches and configure them as VTP clients. All links between swiches must be configured as trunk lines.
+    - Port security enabled
+    - Mode : restrict
+    - Allowed mac addresses : 3
+    - Dynamic mac address learning.
 
-3. Configure VTP domain name as "TESTDOMAIN" and VTP password as "cisco"
+2. Configure port security on interface Fa 0/2 of the switch with the following settings :
 
-4. Configure VLAN 10 with name "STUDENTS" and VLAN 50 with name "SERVERS"
+    - Port security enabled
+    - Mode : shutdown
+    - Allowed mac addresses : 3
+    - Dynamic mac address learning.
 
-5. Check propagation on all switches of the VTP domain.
+3. Configure port security on interface Fa 0/3 of the switch with the following settings :
+
+    - Port security enabled
+    - Mode : protect
+    - Static mac address entry : 00E0.A3CE.3236
+
+4. From LAPTOP 1 :
+
+    Try to ping 192.168.1.2 and 192.168.1.3. It should work.
+    Try to ping 192.168.1.4 and 192.168.1.5. It should work.
+
+5. Connect ROGUE laptop to the hub.
+
+    Try to ping 192.168.1.1. It should work.
+    Try to ping 192.168.1.4. It should fail.
 
 <br>
 
 ## Solution
 
-### STEP 1 — Configure VTP-SERVER
+### Lab Objective
 
-Go to VTP-SERVER CLI, then enter:
+You will configure **port security** on three switch ports (FastEthernet0/1, 0/2, 0/3), each with a different violation mode.
+
+**Devices in the topology**
+- **Switch0 (Cisco 2960)**
+- **Hub0** (connected to multiple laptops and PC)
+- **IP Phone0**
+- **Several laptops (Laptop1, ROGUE, etc.)**
+
+### STEP 1 — Interface Fa0/1 (Mode: Restrict)
+
+Commands on Switch0:
 
 ```sh
 enable
 configure terminal
-vtp mode server
-vtp domain TESTDOMAIN
-vtp password cisco
+interface FastEthernet0/1
+ switchport mode access
+ switchport port-security
+ switchport port-security maximum 3
+ switchport port-security mac-address sticky
+ switchport port-security violation restrict
 ```
 
 <br>
 
-Verify:
+Explanation:
+
+| Setting                    | Description                                                      |
+| -------------------------- | ---------------------------------------------------------------- |
+| `switchport port-security` | Enables port security                                            |
+| `maximum 3`                | Allows only 3 MAC addresses to be learned dynamically            |
+| `mac-address sticky`       | Learns and stores MACs automatically                             |
+| `violation restrict`       | Drops packets from unknown MACs and increments violation counter |
+
+
+This interface is connected to **Hub0**, which will learn multiple MACs dynamically. When a **rogue device** connects and adds more than 3 MACs, this port will **restrict** it (drop packets but stay active).
+
+<br>
+
+### STEP 2 — Interface Fa0/2 (Mode: Shutdown)
+
+Commands on Switch0:
 
 ```sh
-show vtp status
+interface FastEthernet0/2
+ switchport mode access
+ switchport port-security
+ switchport port-security maximum 3
+ switchport port-security mac-address sticky
+ switchport port-security violation shutdown
+```
+
+> “shutdown” is actually the default violation mode. When violated → port goes err-disabled and must be manually recovered.
+
+If this port exceeds 3 MACs, it will shut down (amber light).
+
+<br>
+
+### STEP 3 — Interface Fa0/3 (Mode: Protect, Static MAC)
+
+Commands on Switch0
+
+```sh
+interface FastEthernet0/3
+ switchport mode access
+ switchport port-security
+ switchport port-security mac-address 00E0.A3CE.3236
+ switchport port-security violation protect
+```
+
+**Explanation**:
+- Only one device (MAC: 00E0.A3CE.3236) can communicate on this port.
+- If another laptop plugs in → traffic silently dropped (no counter, no shutdown).
+
+<br>
+
+### STEP 4 — Verification Commands
+
+After configuration, check with:
+
+```sh
+show port-security
 ```
 
 <br>
+
+Example output:
+
+```sh
+Secure Port  MaxSecureAddr  CurrentAddr  SecurityViolation  Security Action
+---------------------------------------------------------------------------
+Fa0/1        3              3            5                  Restrict
+Fa0/2        3              1            0                  Shutdown
+Fa0/3        1              1            0                  Protect
+```
+
+<br>
+
+Or detailed info per interface:
+
+```sh
+show port-security interface fa0/1
+```
+
+<br>
+
+### STEP 5 — Test Scenario
+
+**From Laptop1**: Ping other PCs (192.168.1.2, 192.168.1.3, etc.) → should work fine.
+
+<br>
+
+**Connect the “Rogue Laptop” to the Hub:**
+
+1. Once connected, the hub and switch port (Fa0/1) will have >3 MAC addresses.
+2. Port Fa0/1 is in **restrict** mode → it will drop traffic from the new (rogue) MAC.
+
+Result:
+- Rogue can ping 192.168.1.1 (since still under same port, initial ping OK)
+- But cannot ping 192.168.1.4 (because of port-security restriction)
+
+Check violations:
+
+```sh
+show port-security interface fa0/1
+```
 
 You should see:
 
 ```sh
-VTP Operating Mode: Server
-VTP Domain Name: TESTDOMAIN
-VTP Password: cisco
+Security Violation Count: >0
+Security Action: Restrict
 ```
 
 <br>
 
-#### STEP 2 — Configure VTP-CLIENT1, VTP-CLIENT2, VTP-CLIENT3
+### STEP 6 — Recover from Shutdown (if triggered)
 
-On each client switch:
+If port Fa0/2 goes into `err-disabled`:
+
+```shk
+interface FastEthernet0/2
+ shutdown
+ no shutdown
+```
+
+<br>
+
+Then check:
 
 ```sh
-enable
-configure terminal
-vtp mode client
-vtp domain TESTDOMAIN
-vtp password cisco
+show interface status
 ```
 
-<br>
-
-Verify:
-
-```sh
-show vtp status
-```
-
-<br>
-
-Expected:
-
-```sh
-VTP Operating Mode: Client
-VTP Domain Name: TESTDOMAIN
-VTP Password: cisco
-```
-
-> Tip: Domain and password must match exactly (case-sensitive).
-
-<br>
-
-#### STEP 3 — Configure Trunk Links between all switches
-
-Each connection between switches must be a **trunk port**.
-
-Example — on **every switch**, configure both Gigabit ports:
-
-```sh
-configure terminal
-interface range GigabitEthernet0/1 - 2
-switchport mode trunk
-no shutdown
-exit
-```
-
-> Don’t use `switchport mode dynamic desirable` — the lab specifies **no negotiation**, so only `switchport mode trunk`.
-
-<br>
-
-Verify:
-
-```sh
-show interfaces trunk
-```
-
-You should see all Gi0/1 and Gi0/2 in `trunking` state.
-
-<br>
-
-#### STEP 4 — Create VLANs on the VTP-SERVER
-
-Now, create VLAN 10 and VLAN 50 only on the server switch.
-
-```sh
-configure terminal
-vlan 10
- name STUDENTS
-exit
-vlan 50
- name SERVERS
-exit
-```
-
-<br>
-
-Verify locally:
-
-```sh
-show vlan brief
-```
-
-<br>
-
-Expected output:
-
-```sh
-VLAN Name      Status   Ports
-1    default   active   Fa0/1 ...
-10   STUDENTS  active
-50   SERVERS   active
-```
-
-<br>
-
-#### STEP 5 — Verify VTP Propagation
-
-Now go to each client switch and type:
-
-```sh
-show vlan brief
-```
-
-<br>
-
-Expected result (without manually creating VLANs):
-
-```sh
-VLAN Name      Status
-1    default   active
-10   STUDENTS  active
-50   SERVERS   active
-```
-
-If VLANs 10 and 50 appear on all 3 clients → your **VTP is working correctly**.
-
-<br>
-
-#### STEP 6 — Optional Verification Commands
-
-| Command                      | Description                            |
-| ---------------------------- | -------------------------------------- |
-| `show vtp status`            | Check mode, domain, revision number    |
-| `show vlan brief`            | List all VLANs learned via VTP         |
-| `show interfaces trunk`      | Verify trunk ports                     |
-| `show interfaces switchport` | Confirm trunk/access mode of each port |
-
-<br>
-
-## Common Troubleshooting Tips
-
-| Problem                   | Likely Cause                   | Fix                                       |
-| ------------------------- | ------------------------------ | ----------------------------------------- |
-| VLANs not propagating     | Trunks not configured properly | Run `show interfaces trunk` and fix ports |
-| Client not learning VLANs | Wrong domain or password       | Re-enter `vtp domain` and `vtp password`  |
-| Revision number mismatch  | Old config in client           | Use `delete flash:vlan.dat` then reload   |
+It should show **connected (green)** again.
 
 <br>
 
 ## Summary of All Commands
 
-On VTP-SERVER
+### FastEthernet0/1 — Restrict
 
 ```sh
-enable
-conf t
-vtp mode server
-vtp domain TESTDOMAIN
-vtp password cisco
-interface range gi1/1 - 2
- switchport mode trunk
-vlan 10
- name STUDENTS
-vlan 50
- name SERVERS
-end
-write memory
+interface fa0/1
+ switchport mode access
+ switchport port-security
+ switchport port-security maximum 3
+ switchport port-security mac-address sticky
+ switchport port-security violation restrict
 ```
 
 <br>
 
-On VTP-CLIENT1, CLIENT2, CLIENT3
+### FastEthernet0/2 — Shutdown
 
 ```sh
-enable
-conf t
-vtp mode client
-vtp domain TESTDOMAIN
-vtp password cisco
-interface range gi1/1 - 2
- switchport mode trunk
-end
-write memory
+interface fa0/2
+ switchport mode access
+ switchport port-security
+ switchport port-security maximum 3
+ switchport port-security mac-address sticky
+ switchport port-security violation shutdown
 ```
+
+<br>
+
+### FastEthernet0/3 — Protect (Static)
+
+```sh
+interface fa0/3
+ switchport mode access
+ switchport port-security
+ switchport port-security mac-address 00E0.A3CE.3236
+ switchport port-security violation protect
+```
+
+<br>
+
+## Optional Verification Table
+
+| Port  | Max MACs | Mode   | Violation Action | Behavior                          |
+| ----- | -------- | ------ | ---------------- | --------------------------------- |
+| Fa0/1 | 3        | Sticky | Restrict         | Drops extra MAC, counts violation |
+| Fa0/2 | 3        | Sticky | Shutdown         | Port disables on violation        |
+| Fa0/3 | 1        | Static | Protect          | Drops silently, no counter        |
 
 ---
