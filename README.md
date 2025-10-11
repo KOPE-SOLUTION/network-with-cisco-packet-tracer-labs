@@ -1,171 +1,186 @@
-# Packet Tracer 8.2.2 - Lab 6 Basic router setup
-
-## Introduction
-At the first boot of a Cisco ISR router, some basic configuration has to be performed to secure adminitrative access to the router. This lab will test your ability to configure the basic security settngs of a Cisco ISR router and help you to get ready for the router configuration simulation activities in the CCENT / ICND1 certification exam (Chapter 5.0 Infrastructure Maintenance of [Cisco Certified Entry Networking Technician (CCENT)](https://www.packettracernetwork.com/ccna-ccnp-preparation/ccentcertification.html) exam)
-
-<br>
+# Packet Tracer 8.2.2 - Lab 7 Static routes
 
 ## Network diagram
 
 ![network diagram](images/network-diagram.png)
 
-<br>
-
 ## Lab instructions
-The aim of this lab is to test your ability to perform a basic router setup. You have 15 minutes to complete this simulation.
 
-1. Configure the LAPTOP terminal software with the right console parameters.
+1. Configure router's IP addresses : 
+    - Atlanta Fa 0/0 : 10.112.8.1/30 
+    - New York Fa 0/0 : 10.112.8.2/30 
+    - New York Fa 0/1 : 10.114.65.129/30 
+    - Chicage Fa 0/1 : 10.114.65.130/30 
 
-2. Configure the router hostname to "GATEWAY"
-
-3. Configure the enable password and secret to "cisco"
-
-4. Configure password encryption on the router to secure stored passwords
-
-5. Configure the console access :
-    - Login : yes
-    - Password : "cisco"
-    - History : 10 commands
-    - Logging synchronous
-    - Timeout : 2 minutes 45 seconds.
+2. Configure a static route on Chicago router for 10.112.8.0/30 network 
+3. Configure a static route on Atanta router for 10.114.65.128/30 network 
+4. From Atlanta, ping Chicago router to test your configuration.
 
 <br>
 
 ## Solution
 
-### Step 1 — Configure the Laptop Terminal
+### Network Overview
 
-1. Click **Laptop** → **Desktop** → **Terminal**.
-2. You’ll see the **Terminal Configuration** window (like in your image).
-3. Set the parameters as follows:
+```sh
+Atlanta ───── 10.112.8.0/30 ───── New York ───── 10.114.65.128/30 ───── Chicago
+```
 
-| Setting             | Value |
-| ------------------- | ----- |
-| **Bits per second** | 9600  |
-| **Data bits**       | 8     |
-| **Parity**          | None  |
-| **Stop bits**       | 1     |
-| **Flow control**    | None  |
+| Router   | Interface | IP Address    | Subnet Mask     | Connected To   |
+| -------- | --------- | ------------- | --------------- | -------------- |
+| Atlanta  | Fa0/0     | 10.112.8.1    | 255.255.255.252 | New York Fa0/0 |
+| New York | Fa0/0     | 10.112.8.2    | 255.255.255.252 | Atlanta        |
+| New York | Fa0/1     | 10.114.65.129 | 255.255.255.252 | Chicago        |
+| Chicago  | Fa0/1     | 10.114.65.130 | 255.255.255.252 | New York       |
 
-
-Then click OK — this opens a console session with the router.
 
 <br>
 
-### Step 2 — Configure the Router Hostname
+### Step 1 — Configure Interface IPs
 
-Enter privileged mode and change the hostname:
+**Atlanta Router**
 
 ```sh
-Router> enable
-Router# configure terminal
-Router(config)# hostname GATEWAY
+enable
+configure terminal
+interface FastEthernet0/0
+ ip address 10.112.8.1 255.255.255.252
+ no shutdown
+exit
 ```
 
 <br>
 
-The prompt should now display:
+**New York Router**
 
 ```sh
-GATEWAY(config)#
+enable
+configure terminal
+interface FastEthernet0/0
+ ip address 10.112.8.2 255.255.255.252
+ no shutdown
+exit
+
+interface FastEthernet0/1
+ ip address 10.114.65.129 255.255.255.252
+ no shutdown
+exit
 ```
 
 <br>
 
-### Step 3 — Configure Enable Passwords
-
-You will configure both the simple password and the encrypted secret:
+**Chicago Router**
 
 ```sh
-GATEWAY(config)# enable password cisco
-GATEWAY(config)# enable secret cisco
+enable
+configure terminal
+interface FastEthernet0/1
+ ip address 10.114.65.130 255.255.255.252
+ no shutdown
+exit
 ```
 
-> The `enable secret` command automatically encrypts the password using MD5 and takes precedence over the plain `enable password`.
+Check connectivity so far:
+
+- From New York, ping Atlanta (10.112.8.1)
+- From New York, ping Chicago (10.114.65.130)
+
+If both work → interfaces are configured correctly.
 
 <br>
 
-### Step 4 — Enable Password Encryption
+### Step 2 — Configure a Static Route on Chicago Router
 
-This prevents plain-text passwords from being shown in the configuration file:
+Chicago needs a route to reach the **10.112.8.0/30** network (Atlanta ↔ New York link).
+
+On **Chicago Router**:
 
 ```sh
-GATEWAY(config)# service password-encryption
+ip route 10.112.8.0 255.255.255.252 10.114.65.129
 ```
+
+> This means: “To reach 10.112.8.0/30, send traffic to next-hop 10.114.65.129 (New York).”
 
 <br>
 
-### Step 5 — Configure Console Access
+### Step 3 — Configure a Static Route on Atlanta Router
 
-Set up secure console access with login, password, timeout, and history:
+Atlanta needs a route to reach the **10.114.65.128/30** network (New York ↔ Chicago link).
+
+On **Atlanta Router**:
+
+ip route 10.114.65.128 255.255.255.252 10.112.8.2
+
+> This means: “To reach 10.114.65.128/30, send traffic to next-hop 10.112.8.2 (New York).”
+
+<br>
+
+From **Atlanta Router**:
 
 ```sh
-GATEWAY(config)# line console 0
-GATEWAY(config-line)# password cisco
-GATEWAY(config-line)# login
-GATEWAY(config-line)# logging synchronous
-GATEWAY(config-line)# exec-timeout 2 45
-GATEWAY(config-line)# history size 10
-GATEWAY(config-line)# exit
+ping 10.114.65.130
 ```
 
-<br>
-
-**Explanation**:
-
-| Command               | Purpose                                                  |
-| --------------------- | -------------------------------------------------------- |
-| `password cisco`      | Sets console password                                    |
-| `login`               | Enables password checking                                |
-| `logging synchronous` | Prevents log messages from interrupting your typing      |
-| `exec-timeout 2 45`   | Auto-logout after 2 minutes and 45 seconds of inactivity |
-| `history size 10`     | Keeps the last 10 executed commands in history           |
+If the routing is correct, the ping should **succeed**.
 
 <br>
 
-### Step 6 — Verify and Save Configuration
+## Verification Commands
 
-Check your configuration:
+| Command                   | Purpose                        |
+| ------------------------- | ------------------------------ |
+| `show ip interface brief` | Check interface IPs and status |
+| `show ip route`           | Verify static routes           |
+| `ping <IP>`               | Test connectivity              |
+| `traceroute <IP>`         | Show routing path              |
+
+Example on Atlanta:
 
 ```sh
-show running-config
+GATEWAY# show ip route
+S    10.114.65.128 [1/0] via 10.112.8.2
+C    10.112.8.0 is directly connected, FastEthernet0/0
 ```
 
 <br>
 
-Then save it to NVRAM:
+## Summary of All Commands
+
+Atlanta Router
 
 ```sh
-copy running-config startup-config
+interface Fa0/0
+ ip address 10.112.8.1 255.255.255.252
+ no shutdown
+exit
+ip route 10.114.65.128 255.255.255.252 10.112.8.2
 ```
 
 <br>
 
-## Final Configuration Summary
+New York Router
 
-| Step | Command                                              | Description                                   |
-| ---- | ---------------------------------------------------- | --------------------------------------------- |
-| 1    | Configure terminal to **9600 / 8 / None / 1 / None** | Enable console access                         |
-| 2    | `hostname GATEWAY`                                   | Set router name                               |
-| 3    | `enable secret cisco`                                | Set encrypted privileged password             |
-| 4    | `service password-encryption`                        | Encrypt all passwords                         |
-| 5    | `line console 0` …                                   | Configure console login, timeout, and logging |
-| 6    | `copy run start`                                     | Save configuration permanently                |
-
+```sh
+interface Fa0/0
+ ip address 10.112.8.2 255.255.255.252
+ no shutdown
+exit
+interface Fa0/1
+ ip address 10.114.65.129 255.255.255.252
+ no shutdown
+exit
+```
 
 <br>
 
-## Quick Test
+Chicago Router
 
-1. Close the terminal window, reconnect via console.
-2. The router will now prompt for a **password** → type `cisco`.
-3. Enter **enable mode** with `enable` → again use `cisco`.
-4. Check the prompt — it should show:
-
-    ```sh
-    GATEWAY#
-    ```
-
-That means your lab is complete!
+```sh
+interface Fa0/1
+ ip address 10.114.65.130 255.255.255.252
+ no shutdown
+exit
+ip route 10.112.8.0 255.255.255.252 10.114.65.129
+```
 
 ---
