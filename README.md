@@ -1,4 +1,16 @@
-# Packet Tracer 8.2.2 - Lab 7 Static routes
+# Packet Tracer 8.2.2 - Lab 11 HDLC configuration
+
+## Introduction
+
+HDLC is a data link protocol used on synchronous serial data links. Because the standardized HDLC cannot support multiple protocols on a single link (lack of a mechanism to indicate which protocol is carried), Cisco developped a proprietary version of HDLC, called cHDLC, with a proprietary field acting as a protocol field. This field makes it possible for a single serial link to accommodate multiple network-layer protocols.
+
+Cisco’s HDLC is a point-to-point protocol that can only be used on serial links or leased lines between two Cisco devices. PPP has to be used when communicating with non-Cisco devices. HDLC is the default encapsulation on serial links in a Cisco router. However, to change the encapsulation back to HDLC from [PPP](https://www.packettracernetwork.com/labs/lab12-ppp.html), use the following command from interface configuration mode:
+
+```sh
+Router(config-if)#encapsulation hdlc
+```
+
+With a back-to-back serial connection, the ISR router connected to the **DCE** end of the serial cable provides the clock signal for the serial link. This clock is received by the **DTE** device. The **clock rate** command in the interface configuration mode enables the router at the DCE end of the cable to provide the clock signal for the serial link. The default clock rate is 64000.
 
 ## Network diagram
 
@@ -6,181 +18,148 @@
 
 ## Lab instructions
 
-1. Configure router's IP addresses : 
-    - Atlanta Fa 0/0 : 10.112.8.1/30 
-    - New York Fa 0/0 : 10.112.8.2/30 
-    - New York Fa 0/1 : 10.114.65.129/30 
-    - Chicage Fa 0/1 : 10.114.65.130/30 
+This lab will test your ability to configure HDLC back to back connection on a serial link between two Cisco ISR routers in Packet Tracer 8.0 . Practicing this labs will you to get ready for the CCNA certification exam simulation questions.
 
-2. Configure a static route on Chicago router for 10.112.8.0/30 network 
-3. Configure a static route on Atanta router for 10.114.65.128/30 network 
-4. From Atlanta, ping Chicago router to test your configuration.
+1. Use the connected laptops to find the DCE and DTE routers. You can connect to the routers using CLI.
 
-<br>
+2. Configure the routers with the following parameters :
+
+        - Clock : 250000
+        - HDLC link between the routers
+        - DCE router IP : 192.168.10.5/30
+
+        - DTE router IP : 192.168.10.6/30
+
+3. Check IP connectivity between the two routers using the ping command.
 
 ## Solution
 
-### Network Overview
+### Step 1 — Identify DCE and DTE Routers
+
+In a **back-to-back serial connection**, one side of the cable acts as **DCE** (provides clock signal), and the other as **DTE** (receives it).
+We’ll determine which router is which.
+
+Commands (on both routers):
 
 ```sh
-Atlanta ───── 10.112.8.0/30 ───── New York ───── 10.114.65.128/30 ───── Chicago
+show controllers serial 0/0/0
 ```
 
-| Router   | Interface | IP Address    | Subnet Mask     | Connected To   |
-| -------- | --------- | ------------- | --------------- | -------------- |
-| Atlanta  | Fa0/0     | 10.112.8.1    | 255.255.255.252 | New York Fa0/0 |
-| New York | Fa0/0     | 10.112.8.2    | 255.255.255.252 | Atlanta        |
-| New York | Fa0/1     | 10.114.65.129 | 255.255.255.252 | Chicago        |
-| Chicago  | Fa0/1     | 10.114.65.130 | 255.255.255.252 | New York       |
+**Expected Results**:
 
+- DCE router output: will show `DCE V.35`
+- DTE router output: will show `DTE V.35`
+
+Example :
+
+```sh
+Router-A#show controllers serial 0/0/0
+DTE V.35 TX and RX clocks detected
+
+Router-B#show controllers serial 0/0/0
+DCE V.35, clock rate 2000000
+```
+
+In this case, **Router-B = DCE** and **Router-A = DTE**
 
 <br>
 
-### Step 1 — Configure Interface IPs
+### Step 2 — Configure the Serial Interfaces
 
-**Atlanta Router**
-
-```sh
-enable
-configure terminal
-interface FastEthernet0/0
- ip address 10.112.8.1 255.255.255.252
- no shutdown
-exit
-```
-
-<br>
-
-**New York Router**
-
-```sh
-enable
-configure terminal
-interface FastEthernet0/0
- ip address 10.112.8.2 255.255.255.252
- no shutdown
-exit
-
-interface FastEthernet0/1
- ip address 10.114.65.129 255.255.255.252
- no shutdown
-exit
-```
-
-<br>
-
-**Chicago Router**
+On Router-B (DCE side):
 
 ```sh
 enable
 configure terminal
-interface FastEthernet0/1
- ip address 10.114.65.130 255.255.255.252
+interface serial 0/0/0
+ clock rate 250000
+ encapsulation hdlc
+ ip address 192.168.10.5 255.255.255.252
  no shutdown
 exit
 ```
 
-Check connectivity so far:
-
-- From New York, ping Atlanta (10.112.8.1)
-- From New York, ping Chicago (10.114.65.130)
-
-If both work → interfaces are configured correctly.
-
 <br>
 
-### Step 2 — Configure a Static Route on Chicago Router
-
-Chicago needs a route to reach the **10.112.8.0/30** network (Atlanta ↔ New York link).
-
-On **Chicago Router**:
+On Router-A (DTE side):
 
 ```sh
-ip route 10.112.8.0 255.255.255.252 10.114.65.129
+enable
+configure terminal
+interface serial 0/0/0
+ encapsulation hdlc
+ ip address 192.168.10.6 255.255.255.252
+ no shutdown
+exit
 ```
 
-> This means: “To reach 10.112.8.0/30, send traffic to next-hop 10.114.65.129 (New York).”
-
 <br>
 
-### Step 3 — Configure a Static Route on Atlanta Router
-
-Atlanta needs a route to reach the **10.114.65.128/30** network (New York ↔ Chicago link).
-
-On **Atlanta Router**:
-
-ip route 10.114.65.128 255.255.255.252 10.112.8.2
-
-> This means: “To reach 10.114.65.128/30, send traffic to next-hop 10.112.8.2 (New York).”
-
-<br>
-
-From **Atlanta Router**:
+After a few seconds, both routers should show:
 
 ```sh
-ping 10.114.65.130
+%LINK-5-CHANGED: Interface Serial0/0/0, changed state to up
 ```
 
-If the routing is correct, the ping should **succeed**.
+<br>
+
+### Step 3 — Verify the Link and HDLC
+
+On both routers, type:
+
+```sh
+show interfaces serial 0/0/0
+```
+
+<br>
+
+You should see:
+
+```sh
+Serial0/0/0 is up, line protocol is up
+Encapsulation HDLC, loopback not set, keepalive set (10 sec)
+Internet address is 192.168.10.5/30   <-- or .6 on the other side
+```
+
+<br>
+
+### Step 4 — Test Connectivity
+
+From Router-A, ping Router-B:
+
+```sh
+ping 192.168.10.5
+```
+
+<br>
+
+You should get:
+
+```sh
+!!!!!  (5/5 successful)
+```
+
+If not, double-check:
+- Both interfaces are up
+- Encapsulation is HDLC on both sides
+- Correct IP addresses and subnet mask (/30)
+<br>
+
+## Final Configuration Summary
+
+| Router   | Interface   | Role    | IP Address       | Encapsulation | Clock Rate |
+| -------- | ----------- | ------- | ---------------- | ------------- | ---------- |
+| Router-B | Serial0/0/0 | **DCE** | 192.168.10.5 /30 | HDLC          | 250000     |
+| Router-A | Serial0/0/0 | **DTE** | 192.168.10.6 /30 | HDLC          | —          |
 
 <br>
 
 ## Verification Commands
 
-| Command                   | Purpose                        |
-| ------------------------- | ------------------------------ |
-| `show ip interface brief` | Check interface IPs and status |
-| `show ip route`           | Verify static routes           |
-| `ping <IP>`               | Test connectivity              |
-| `traceroute <IP>`         | Show routing path              |
+| Command                         | Description                          |
+| ------------------------------- | ------------------------------------ |
+| `show controllers serial 0/0/0` | Check DCE/DTE status                 |
+| `show interfaces serial 0/0/0`  | Verify link status and encapsulation |
+| `ping <ip>`                     | Test connectivity                    |
+| `show ip interface brief`       | Check interface status summary       |
 
-Example on Atlanta:
-
-```sh
-GATEWAY# show ip route
-S    10.114.65.128 [1/0] via 10.112.8.2
-C    10.112.8.0 is directly connected, FastEthernet0/0
-```
-
-<br>
-
-## Summary of All Commands
-
-Atlanta Router
-
-```sh
-interface Fa0/0
- ip address 10.112.8.1 255.255.255.252
- no shutdown
-exit
-ip route 10.114.65.128 255.255.255.252 10.112.8.2
-```
-
-<br>
-
-New York Router
-
-```sh
-interface Fa0/0
- ip address 10.112.8.2 255.255.255.252
- no shutdown
-exit
-interface Fa0/1
- ip address 10.114.65.129 255.255.255.252
- no shutdown
-exit
-```
-
-<br>
-
-Chicago Router
-
-```sh
-interface Fa0/1
- ip address 10.114.65.130 255.255.255.252
- no shutdown
-exit
-ip route 10.112.8.0 255.255.255.252 10.114.65.129
-```
-
----
