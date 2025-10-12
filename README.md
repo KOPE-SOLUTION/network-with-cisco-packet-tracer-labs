@@ -163,3 +163,11 @@ If not, double-check:
 | `ping <ip>`                     | Test connectivity                    |
 | `show ip interface brief`       | Check interface status summary       |
 
+<br>
+
+## Lab Summary (in simple terms):
+
+This lab sets up a point-to-point serial link using HDLC between two routers.
+You configure one as DCE with a clock rate and both with IP addresses so they can communicate directly.
+
+---
