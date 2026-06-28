@@ -69,10 +69,10 @@ Copyright : http://www.packettracernetwork.com
 
 #### 1. ใช้เครื่อง Local Laptop เชื่อมต่อกับ Switch ผ่าน Console
 
-ให้ใช้ สาย Console (สีน้ำเงิน) ต่อจากพอร์ต RS232 ของ Laptop → ไปยัง Console Port ของ Switch
+ให้ใช้ สาย Console (สีน้ำเงิน) ต่อจากพอร์ต RS232 ของ Laptop ไปยัง Console Port ของ Switch
 
 คำแนะนำ
-- คลิก Laptop → Tab “Desktop” → “Terminal”
+- คลิก Laptop --> Tab "Desktop" --> "Terminal"
 - กด OK (ใช้ค่ามาตรฐาน: 9600 baud, 8 data bits, no parity, 1 stop bit, no flow control)
 - จะเห็นหน้าจอ CLI ของ Switch
 
