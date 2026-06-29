@@ -1,4 +1,4 @@
-# Packet Tracer 8.2.2 - Lab 1 : Basic Switch Setup
+# Network with Cisco Packet Tracer - Lab 1 : Basic Switch Setup
 
 > **แนวคิดของเอกสารนี้**
 >
