@@ -1,5 +1,7 @@
 # Packet Tracer 8.2.2 Labs
 
+Copyright : http://www.packettracernetwork.com
+
 ## Select each branch to read the lesson.
 
 ---

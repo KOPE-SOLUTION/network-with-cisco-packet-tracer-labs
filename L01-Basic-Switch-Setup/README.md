@@ -1,7 +1,5 @@
 # Packet Tracer 8.2.2 - Lab 1 : Basic Switch Setup
 
-Copyright : http://www.packettracernetwork.com
-
 > **แนวคิดของเอกสารนี้**
 >
 > เรียนรู้ **พื้นฐานและคำสั่งของ Cisco IOS ก่อน** จากนั้นจึงลงมือทำ Lab
