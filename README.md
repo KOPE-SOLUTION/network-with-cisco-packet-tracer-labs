@@ -8,7 +8,7 @@
 
 #### CCNA labs - LAN Switching
 
-* [Lab-1 : Basic switch setup](https://github.com/KOPE-SOLUTION/packet-tracer-8_2_2-labs/tree/lab-1)
+* [Lab-1 : Basic switch setup](L01-Basic-Switch-Setup/README.md)
 * [lab-2 : Configuring switch interfaces](https://github.com/KOPE-SOLUTION/packet-tracer-8_2_2-labs/tree/lab-2)
 * [lab-3 : VLAN and VTP configuration](https://github.com/KOPE-SOLUTION/packet-tracer-8_2_2-labs/tree/lab-3)
 * [lab-4 : Port security](https://github.com/KOPE-SOLUTION/packet-tracer-8_2_2-labs/tree/lab-4)
