@@ -1,4 +1,4 @@
-# Network with Packet Tracer Labs.
+# Network with Cisco Packet Tracer Labs.
 
 ## Select each branch to read the lesson.
 
